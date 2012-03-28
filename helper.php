@@ -4,64 +4,88 @@
  * Module: Tweets Modules
  * Author: Jeremy Wilken @ Gnome on the run
  * Author URL: www.gnomeontherun.com
- * License: GNU GPL
- * Module Description: This module takes the rss feed from a user's public Twitter tweets and displays them.
+ * License: GNU GPL v2
  *
- * File: helper.php
- * File Description: This file gets the Twitter feed, parses it, and returns a multidiminsional array with tweet, date, and link.
  */
 
 defined('_JEXEC') or die('Direct Access is forbidden, shame on you');
 
-class modTweetsHelper {
+class modTweetsHelper 
+{
 
-    function getTweets($params) {
-        $tweets = array();
-        $tweets['error'] = false;
-
-        $cache = JPATH_BASE . DS . 'cache';
-        if (!is_writable($cache))
-            return $tweets['error'] = 'Cache folder is unwriteable. Solution: chmod 755 ' . $cache;
-
+    function getTweets($params) 
+	{
+		// Initialize variables and set defaults
+        $cache = dirname(__FILE__) . '/cache/';
+		if (!is_dir($cache)) JFolder::create($cache, 755);
         $user = $params->get('user', 'gnomeontherun');
+		$type = $params->get('type', 'user');
         $quantity = $params->get('quantity', '3');
         $cachetime = $params->get('cachetime', '30') * 60;
-        $subtract = strlen($user) + 2;
-        $tweetURL = "http://twitter.com/statuses/user_timeline/" . $user . ".rss";
-        $cachefile = $user . ".xml";
-        $cachepathfile = $cache . DS . $cachefile;
-
-        if (!file_exists($cachepathfile) || (time() - $cachetime) > filemtime($cachepathfile)) {
-            $file = @file_get_contents($tweetURL);
-            if ($file)
-                file_put_contents($cachepathfile, $file);
-            else
-                return $tweets['error'] = "Unable to get latest tweets at this time.";
-        }
-
-        if ($quantity > 20 || $quantity < 0) {
+		$search = urlencode($params->get('query', 'joomla'));
+		if ($quantity > 20 || $quantity < 0) {
             $quantity = 5;
         }
-
-        $twitter = simplexml_load_file($cachepathfile);
-
-        if (!$twitter)
-            return $tweets['error'] = "Unable to get latest tweets at this time.";
-
-        // Ready for some exciting dishing out
-        $i = 0;
-        // For each slice of pie we've got to get the goods
-        foreach ($twitter->xpath('channel/item') as $tweet) {
-            if ($i < $quantity) {
-                $tweetTitle = $tweet->title[0];
-                $tweetTitle = substr($tweetTitle, $subtract);
-                $tweetTitle = preg_replace("#[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]#", "<a href=\"\\0\">\\0</a>", $tweetTitle);
-                $tweets[$i]["tweet"] = $tweetTitle;
-                $tweets[$i]["pubDate"] = $tweet->pubDate[0];
-                $tweets[$i]["link"] = $tweet->link[0];
-                $i++;
-            }
+        
+		if ($type == 'search')
+		{
+			$tweetURL = 'http://search.twitter.com/search.json?q=' . $search . '&rpp=' . $quantity . '&result_type=recent';
+			$cachefile = JFile::makeSafe($search) . '.json';
+		}
+		else
+		{
+			$tweetURL = 'http://api.twitter.com/1/statuses/user_timeline.json?screen_name=' . $user . '&count=' . $quantity;
+			$cachefile = $user . '.json';
+		}
+        $cachepathfile = $cache . $cachefile;
+		
+		// Check if cached version is uptodate or not
+		if (!file_exists($cachepathfile) || (time() - $cachetime) > filemtime($cachepathfile)) 
+		{
+			// If curl is enabled, use it
+			if (in_array('curl', get_loaded_extensions()))
+			{
+				$ch = curl_init($tweetURL);
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				$file = curl_exec($ch);
+				curl_close($ch);
+			}
+			// Otherwise try to load it with file stream
+			else
+			{
+				$file = @file_get_contents($tweetURL);
+			}
+			
+			if (!$file)
+			{
+				// Unable to download a file
+				throw new Exception(JText::_('MOD_TWEETS_ERROR_COULD_NOT_DOWNLOAD'));
+			}
+			
+			$tweets = json_decode($file);
+			
+			if (count($tweets) && !isset($tweets->error))
+			{
+				JFile::write($cachepathfile, $file);
+			}
+			else
+			{
+				// Throw error about not getting a good file from twitter
+				throw new Exception(JText::_('MOD_TWEETS_ERROR_TWITTER_NO_TWEETS'));
+			}
         }
+
+		// If cached, load the file and decode json
+		if (!isset($tweets))
+		{
+			$file = JFile::read($cachepathfile);
+			$tweets = json_decode($file);
+		}
+		
+		if ($type == 'search')
+		{
+			$tweets = $tweets->results;
+		}
 
         return $tweets;
     }
