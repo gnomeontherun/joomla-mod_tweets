@@ -8,7 +8,7 @@ defined('_JEXEC') or die('Direct Access is forbidden, shame on you');
 
 if (isset($tweets->error)) 
 {
-    echo "<div class=\"message\">" . $tweets->error . "</div>";
+    //echo "<div class=\"message\">" . $tweets->error . "</div>";
 } 
 else 
 {
@@ -31,10 +31,10 @@ else
 		$tweet->screen_name = (isset($tweet->user->screen_name)) ? $tweet->user->screen_name : $tweet->from_user;
 		?>
 		<li>
-		<span class="tweet_author"><a href="https://twitter.com/#!/<?php $tweet->screen_name; ?>">@<?php echo $tweet->screen_name; ?></a></span>: 
+			<span class="tweet_author"><a href="https://twitter.com/#!/<?php echo $tweet->screen_name; ?>">@<?php echo $tweet->screen_name; ?></a></span>: 
 			<?php echo $tweet->text; ?><br />
 			<span class="tweet_time"><?php echo modTweetsHelper::timeDifference(strtotime($tweet->created_at)); ?></span> - 
-			<a href="https://twitter.com/#!/<?php $tweet->screen_name; ?>/status/<?php echo $tweet->id; ?>"<?php echo ($params->get('linktype') == 'blank') ? ' target="_blank"' : ''; ?>><?php echo JText::_('MOD_TWEETS_VIEW'); ?> &raquo;</a></span>
+			<a href="https://twitter.com/#!/<?php echo $tweet->screen_name; ?>/status/<?php echo $tweet->id_str; ?>"<?php echo ($params->get('linktype') == 'blank') ? ' target="_blank"' : ''; ?>><?php echo JText::_('MOD_TWEETS_VIEW'); ?> &raquo;</a></span>
 		</li>
 		<?php endforeach; ?>
     </ul>

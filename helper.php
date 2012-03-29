@@ -56,13 +56,13 @@ class modTweetsHelper
 				$file = @file_get_contents($tweetURL);
 			}
 			
+			$tweets = json_decode($file);
+			
 			if (!$file)
 			{
 				// Unable to download a file
-				throw new Exception(JText::_('MOD_TWEETS_ERROR_COULD_NOT_DOWNLOAD'));
+				$tweets->error = JText::_('MOD_TWEETS_ERROR_COULD_NOT_DOWNLOAD');
 			}
-			
-			$tweets = json_decode($file);
 			
 			if (count($tweets) && !isset($tweets->error))
 			{
@@ -71,7 +71,7 @@ class modTweetsHelper
 			else
 			{
 				// Throw error about not getting a good file from twitter
-				throw new Exception(JText::_('MOD_TWEETS_ERROR_TWITTER_NO_TWEETS'));
+				$tweets->error = JText::_('MOD_TWEETS_ERROR_TWITTER_NO_TWEETS');
 			}
         }
 
