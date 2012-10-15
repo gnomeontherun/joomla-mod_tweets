@@ -10,10 +10,10 @@
 
 defined('_JEXEC') or die('Direct Access is forbidden, shame on you');
 
-class modTweetsHelper 
+class modTweetsHelper
 {
 
-    function getTweets($params) 
+    function getTweets($params)
 	{
 		// Initialize variables and set defaults
         $cache = dirname(__FILE__) . '/cache/';
@@ -26,21 +26,21 @@ class modTweetsHelper
 		if ($quantity > 20 || $quantity < 0) {
             $quantity = 5;
         }
-        
+
 		if ($type == 'search')
 		{
-			$tweetURL = 'http://search.twitter.com/search.json?q=' . $search . '&rpp=' . $quantity . '&result_type=recent';
+			$tweetURL = 'https://search.twitter.com/search.json?q=' . $search . '&rpp=' . $quantity . '&result_type=recent';
 			$cachefile = JFile::makeSafe($search) . '.json';
 		}
 		else
 		{
-			$tweetURL = 'http://api.twitter.com/1/statuses/user_timeline.json?screen_name=' . $user . '&count=' . $quantity;
+			$tweetURL = 'https://search.twitter.com/search.json?q=from:' . $user . '&rpp=' . $quantity . '&result_type=recent';
 			$cachefile = $user . '.json';
 		}
         $cachepathfile = $cache . $cachefile;
-		
+
 		// Check if cached version is uptodate or not
-		if (!file_exists($cachepathfile) || (time() - $cachetime) > filemtime($cachepathfile)) 
+		if (!file_exists($cachepathfile) || (time() - $cachetime) > filemtime($cachepathfile))
 		{
 			// If curl is enabled, use it
 			if (in_array('curl', get_loaded_extensions()))
@@ -55,15 +55,15 @@ class modTweetsHelper
 			{
 				$file = @file_get_contents($tweetURL);
 			}
-			
+
 			$tweets = json_decode($file);
-			
+
 			if (!$file)
 			{
 				// Unable to download a file
 				$tweets->error = JText::_('MOD_TWEETS_ERROR_COULD_NOT_DOWNLOAD');
 			}
-			
+
 			if (count($tweets) && !isset($tweets->error))
 			{
 				JFile::write($cachepathfile, $file);
@@ -81,11 +81,8 @@ class modTweetsHelper
 			$file = JFile::read($cachepathfile);
 			$tweets = json_decode($file);
 		}
-		
-		if ($type == 'search')
-		{
-			$tweets = $tweets->results;
-		}
+
+		$tweets = $tweets->results;
 
         return $tweets;
     }
